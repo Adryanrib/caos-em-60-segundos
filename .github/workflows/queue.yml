@@ -1,0 +1,28 @@
+name: Caos 60 - fila automatica
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Caos 60 - descoberta Twitch"]
+    types: [completed]
+permissions:
+  contents: read
+concurrency:
+  group: caos60-queue
+  cancel-in-progress: false
+jobs:
+  queue:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Testes
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Selecionar candidatos
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python scripts/queue.py
