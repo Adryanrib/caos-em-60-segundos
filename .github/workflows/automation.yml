@@ -5,31 +5,37 @@ on:
     - cron: '17,47 * * * *'
 permissions:
   contents: read
+concurrency:
+  group: twitch-discovery
+  cancel-in-progress: false
 jobs:
   discover:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
       TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Verificar sintaxe e testes
+      - name: Executar testes
         run: |
           python -m compileall -q scripts
-          python -m unittest discover -s tests -p "test_*.py" -v
-      - name: Consultar clipes Twitch
-        if: ${{ env.TWITCH_CLIENT_ID != '' && env.TWITCH_CLIENT_SECRET != '' }}
+          python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Validar credenciais de execução
+        run: |
+          test -n "$TWITCH_CLIENT_ID" && test -n "$TWITCH_CLIENT_SECRET" || { echo 'Configure Twitch secrets'; exit 1; }
+          test -n "$SUPABASE_URL" && test -n "$SUPABASE_SERVICE_ROLE_KEY" || { echo 'Configure Supabase secrets'; exit 1; }
+      - name: Descobrir clipes autorizados na Twitch
         run: python scripts/discover.py
-      - name: Credenciais pendentes
-        if: ${{ env.TWITCH_CLIENT_ID == '' || env.TWITCH_CLIENT_SECRET == '' }}
-        run: echo 'Configure os secrets TWITCH_CLIENT_ID e TWITCH_CLIENT_SECRET para ativar a descoberta.'
+      - name: Salvar no Supabase (sem duplicar)
+        run: python scripts/persist.py
       - uses: actions/upload-artifact@v4
-        if: ${{ hashFiles('output/discovered.json') != '' }}
         with:
           name: twitch-clips
           path: output/discovered.json
-          retention-days: 7
+          retention-days: 3
