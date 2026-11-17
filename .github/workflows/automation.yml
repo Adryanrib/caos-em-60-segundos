@@ -1,0 +1,35 @@
+name: Caos 60 - descoberta Twitch
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17,47 * * * *'
+permissions:
+  contents: read
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
+      TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verificar sintaxe e testes
+        run: |
+          python -m compileall -q scripts
+          python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Consultar clipes Twitch
+        if: ${{ env.TWITCH_CLIENT_ID != '' && env.TWITCH_CLIENT_SECRET != '' }}
+        run: python scripts/discover.py
+      - name: Credenciais pendentes
+        if: ${{ env.TWITCH_CLIENT_ID == '' || env.TWITCH_CLIENT_SECRET == '' }}
+        run: echo 'Configure os secrets TWITCH_CLIENT_ID e TWITCH_CLIENT_SECRET para ativar a descoberta.'
+      - uses: actions/upload-artifact@v4
+        if: ${{ hashFiles('output/discovered.json') != '' }}
+        with:
+          name: twitch-clips
+          path: output/discovered.json
+          retention-days: 7

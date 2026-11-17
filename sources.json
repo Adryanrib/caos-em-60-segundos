@@ -1,0 +1,5 @@
+{
+  "sources": [
+    {"platform": "twitch", "channel": "alanzoka", "enabled": true, "rights_verified": false}
+  ]
+}

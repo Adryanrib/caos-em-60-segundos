@@ -1,0 +1,22 @@
+name: Caos 60 - teste FFmpeg
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Renderizar vídeo sintético
+        run: python3 scripts/demo.py
+      - name: Validar arquivo
+        run: ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 output/demo-short.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: demo-short-video
+          path: output/demo-short.mp4
+          retention-days: 1
