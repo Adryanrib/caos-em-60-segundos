@@ -1,0 +1,23 @@
+CAOS EM 60 SEGUNDOS — ETAPA 4: FILA AUTOMÁTICA
+
+1. Abra o Supabase SQL Editor e execute todo o conteúdo de supabase/queue.sql.
+2. No Linux, extraia este ZIP diretamente na pasta do repositório local:
+   cd ~/Downloads/caos60-github
+   unzip -o ~/Downloads/caos60-fila.zip
+   git add scripts/queue.py tests/test_queue.py .github/workflows/queue.yml
+   git commit -m "feat: selecionar candidatos automaticamente no Supabase"
+   git push origin main
+3. No GitHub Actions, rode "Caos 60 - fila automatica" uma vez.
+4. Confira os candidatos no Supabase SQL Editor:
+   select q.status, q.rank_score, c.title, c.views, c.original_url
+   from public.clip_queue q
+   join public.clips c on c.id = q.clip_id
+   order by q.selected_at desc;
+
+O workflow também é acionado após uma execução bem-sucedida de
+"Caos 60 - descoberta Twitch". Seleciona no máximo três candidatos por dia UTC.
+
+IMPORTANTE: isso é automação de seleção dos metadados, NÃO é ainda um
+sistema que baixa o MP4, edita e publica. Status 'awaiting_media'
+indica que o arquivo de vídeo ainda precisa estar disponível de forma autorizada.
+O código exige a chave secreta somente no GitHub Actions, nunca no front-end.

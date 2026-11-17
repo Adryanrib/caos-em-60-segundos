@@ -1,0 +1,37 @@
+name: Caos 60 - teste de clipe real
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: caos60-media-test
+  cancel-in-progress: false
+jobs:
+  media:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Dependencias de video
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          python -m pip install 'streamlink==8.6.3'
+      - name: Testar regras de URL
+        run: python -m unittest discover -s tests -p 'test_media_test.py' -v
+      - name: Obter e editar um clipe autorizado
+        run: python scripts/media_test.py
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: caos60-primeiro-short-real
+          path: |
+            output/clip-vertical.mp4
+            output/metadata.json
+          retention-days: 1
